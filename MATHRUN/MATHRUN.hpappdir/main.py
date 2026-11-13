@@ -4,6 +4,7 @@
 #Python app (hpprime module). Touch buttons + keyboard.
 from hpprime import *
 from math import *
+from array import array
 import gc
 
 try:
@@ -407,7 +408,7 @@ def newgame():
   for k in range(6):
     x,y=freeCell(ROOMS[order[(k+7)%16]]);e=ent(1,x,y);e.kind=k%3;ENTS.append(e)
   #the teacher starts in her office next to the lobby
-  M.x=21.5;M.y=12.0;M.tx=M.x;M.ty=M.y;M.path=[];M.rep=0.0;M.stun=0.0;M.seen=0.0
+  M.x=21.5;M.y=12.0;M.tx=M.x;M.ty=M.y;M.rep=0.0;FS[0]=-1;FS[1]=-1;FS[4]=0;M.stun=0.0;M.seen=0.0
   B.x=1.5;B.y=1.5;B.dir=0;B.wet={}
   K.x=1.5;K.y=MW-2.5;K.cd=3.0;K.pl=None
   say("Find 7 notebooks! Watch out for Ms. Margin...",4)
@@ -729,26 +730,40 @@ def los(x0,y0,x1,y1):
     if solidAt(x0+dx*t,y0+dy*t):return 0
   return 1
 
-def bfsPath(sx,sy,tx,ty):
-  #shortest path on the grid (doors count as open for the teacher)
-  if (sx,sy)==(tx,ty):return []
-  prev={(sx,sy):None};q=[(sx,sy)];h=0
-  while h<len(q):
-    x,y=q[h];h+=1
-    if (x,y)==(tx,ty):break
-    for dx,dy in ((1,0),(-1,0),(0,1),(0,-1)):
-      nx=x+dx;ny=y+dy
-      if (nx,ny) in prev:continue
+#Ms. Margin's path finding: a distance map towards her target, built a
+#little every frame so the game never freezes while it is computed.
+FD=[array('h',[-1]*(MW*MW)),array('h',[-1]*(MW*MW))]   #0 = ready map, 1 = map being built
+FQ=array('h',[0]*(MW*MW))
+FS=[-1,-1,0,0,0]   #ready target, building target, queue head, queue tail, building flag
+def flowStart(tx,ty):
+  t=ty*MW+tx
+  if FS[4] and FS[1]==t:return
+  d=FD[1]
+  for i in range(MW*MW):d[i]=-1
+  d[t]=0;FQ[0]=t;FS[1]=t;FS[2]=0;FS[3]=1;FS[4]=1
+def flowStep(budget):
+  if not FS[4]:return
+  d=FD[1];h=FS[2];tl=FS[3];n=0
+  while h<tl and n<budget:
+    c=FQ[h];h+=1;n+=1
+    dc=d[c]+1;y=c//MW
+    for nc in (c+1,c-1,c+MW,c-MW):
+      if d[nc]>=0:continue
+      ny=nc//MW;nx=nc-ny*MW
       if nx<1 or ny<1 or nx>=MW-1 or ny>=MW-1:continue
       v=MAP[ny][nx]
       if v!=0 and v!=4:continue
-      prev[(nx,ny)]=(x,y);q.append((nx,ny))
-  if (tx,ty) not in prev:return []
-  path=[];c=(tx,ty)
-  while c!=(sx,sy):
-    path.append(c);c=prev[c]
-  path.reverse()
-  return path
+      d[nc]=dc;FQ[tl]=nc;tl+=1
+  FS[2]=h;FS[3]=tl
+  if h>=tl:
+    FD[0],FD[1]=FD[1],FD[0];FS[0]=FS[1];FS[4]=0
+def flowNext(x,y):
+  #next cell towards the target (None if unknown / unreachable / arrived)
+  d=FD[0];c=y*MW+x;dc=d[c]
+  if dc<=0:return None
+  for nc in (c+1,c-1,c+MW,c-MW):
+    if d[nc]==dc-1:return (nc%MW,nc//MW)
+  return None
 
 def tryMove(o,nx,ny,r=0.22):
   if not (solidAt(nx-r,o.y-r) or solidAt(nx+r,o.y-r) or solidAt(nx-r,o.y+r) or solidAt(nx+r,o.y+r)):o.x=nx
@@ -833,20 +848,27 @@ def update(dt,fw,bk,lt,rt,run):
         M.tx=PL.x;M.ty=PL.y;M.seen=1.0
       ST['hunt']=max(0.0,ST['hunt']-dt)
       M.rep-=dt
-      if M.rep<=0:
-        M.rep=0.35
-        M.path=bfsPath(int(M.x),int(M.y),int(M.tx),int(M.ty))
-        if not M.path and M.seen<=0:
-          #wander to a random room
-          r=ROOMS[rint(16)];M.tx,M.ty=r[0]+2.5,r[1]+2.5
-        M.seen-=0.35
-      if M.path:
-        nx,ny=M.path[0]
+      tc=int(M.ty)*MW+int(M.tx)
+      if FS[1]!=tc:flowStart(int(M.tx),int(M.ty))
+      flowStep(220)
+      nxt=None
+      if FS[0]>=0:nxt=flowNext(int(M.x),int(M.y))
+      if FS[0]==tc:
+        mc=int(M.y)*MW+int(M.x)
+        if nxt is None and M.seen<=0 and (FD[0][mc]<=0 or M.rep<=0):
+          #arrived or no way there: wander to a random room
+          r=ROOMS[rint(16)];M.tx,M.ty=r[0]+2.5,r[1]+2.5;M.rep=4.0
+      if M.rep<=0:M.rep=0.35
+      M.seen-=dt
+      if nxt is not None:
+        nx,ny=nxt
+        #aim for the centre of the next cell (follow the cell centre line)
         gx=nx+0.5;gy=ny+0.5
-        dx=gx-M.x;dy=gy-M.y;d=sqrt(dx*dx+dy*dy)
-        if d<0.1:M.path.pop(0)
-        else:
-          st=min(d,speed*dt);M.x+=dx/d*st;M.y+=dy/d*st
+        cx=int(M.x)+0.5;cy=int(M.y)+0.5
+        if nx!=int(M.x):gy=cy
+        else:gx=cx
+        dx=gx-M.x;dy=gy-M.y;d=sqrt(dx*dx+dy*dy)+1e-6
+        st=min(d,speed*dt);M.x+=dx/d*st;M.y+=dy/d*st
       elif sees:
         dx=PL.x-M.x;dy=PL.y-M.y;d=sqrt(dx*dx+dy*dy)+1e-6
         tryMove(M,M.x+dx/d*speed*dt,M.y+dy/d*speed*dt)
