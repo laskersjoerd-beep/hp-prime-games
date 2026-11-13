@@ -68,6 +68,17 @@ def digits(cx,cy,hgt,s,c):
       elif g=='f':FR(x0,y0,t,hh+t/2,c)
       else:FR(x0,y0+hh-t/2,w,t,c)
     x0+=w+gap
+def ledClock(now):
+  #digital cab clock: HH:MM in segment digits, small seconds, blinking colon
+  t=int(now)%86400;hh='%02d'%(t//3600);mm='%02d'%((t//60)%60);ss='%02d'%(t%60)
+  FR(117,202,48,16,0x050607)
+  on=0xFF5A28;off=0x2A1008
+  for txt,cx in ((hh,128),(mm,148)):
+    digits(cx,210,11,'88',off);digits(cx,210,11,txt,on)
+  if int(now*2)&1==0:
+    FR(137,206,2,2,on);FR(137,212,2,2,on)
+  digits(160,213,5,'88',off);digits(160,213,5,ss,on)
+
 def speedSign(cx,cy,R,v,ring=0xD82020,face=0xFFFFFF):
   #round speed-limit sign: red ring, white face, black number decal
   n=8 if R<6 else 14
@@ -164,7 +175,7 @@ def build(ri):
   stops=[200.0]
   for g in gaps:stops.append(stops[-1]+g)
   endm=stops[-1]+24.0
-  n=int(endm/SEG)+150
+  n=int(endm/SEG)+200
   curv=BUF[0];elev=BUF[1];flag=BUF[2];sl=BUF[3];sr=BUF[4];lim=BUF[5];hs=BUF[6]
   for j in range(NMAX):
     curv[j]=0.0;elev[j]=0.0;flag[j]=0;sl[j]=0;sr[j]=0;lim[j]=0
@@ -362,7 +373,7 @@ def build(ri):
 #---------- game state ----------
 TI=[0];RI=[0]
 DET=[1]
-DDS=((60,20,1),(95,24,1),(140,28,1))
+DDS=((80,20,1),(130,24,1),(190,28,1))
 ST={}
 def newgame():
   T=TRAINS[TI[0]]
@@ -587,9 +598,12 @@ def project(cam):
     x+=dx;dx+=curv[j];j+=1
     if j>=n-1:break
     k+=1
+    #level of detail: far away only every 2nd / 4th segment is used. The
+    #choice is tied to the track position (j), not to the camera, so the
+    #far terrain stays put instead of flickering as the train moves.
     if k>mid:
-      if k&3:continue
-    elif k>nearc and (k&1):continue
+      if j&3:continue
+    elif k>nearc and (j&1):continue
     if k>dd:break
     z=j*SEG-cam
     if z<1.0:z=1.0
@@ -629,7 +643,12 @@ def sky():
     for x in range(0,330,10):p.append((x,HOR-fh[((x+o)//10)%64]))
   p.append((SW,HOR+2))
   poly(p,E[6])
-  FR(0,HOR+1,SW,VH-HOR,mix(E[2],E[1],0.85))
+  #ground beyond the view distance: start it at the furthest drawn point so
+  #an uphill track never leaves a see-through gap to the sky
+  gy=HOR+1
+  m=NBM[0]
+  if m>0 and BY[m-1]<gy:gy=max(0,int(BY[m-1]))
+  FR(0,gy,SW,VH-gy,E[1])
 
 def scen(t,side,bx,by,s,h,fg,hz,env):
   if t==PINE:
@@ -771,7 +790,9 @@ def render():
     jn=NB[k];jf=NB[k+1]
     xn=BX[k];yn=BY[k];sn=BS[k];xf=BX[k+1];yf=BY[k+1];sf=BS[k+1]
     zn=BZ[k]
-    fg=zn/maxz;fg=fg*fg*0.85
+    #fog fades fully into the haze at the end of the view, so the edge of
+    #the drawn terrain is invisible and never seems to pop in
+    fg=BZ[k+1]/maxz;fg=fg*fg
     fl=flag[jn]
     vis=yn>yf-0.5
     if vis and yf<VH:
@@ -1012,7 +1033,7 @@ def hud(ctl):
       FR(124+q*14,190,9,7,c)
   else:
     T(121,170,'No signals',0x808890)
-  T(121,205,hhmm(now,1),0xFFFFFF)
+  ledClock(now)
   nl,nd=nextLimit()
   if nl:T(121,224,'%d in %s'%(nl,('%.1f'%(nd/1609.34))[1:] if nd>=160 else '%dy'%int(nd*1.09)),0xC0C8D0)
   # button highlights
