@@ -163,11 +163,22 @@ def poly3(P,c):
       t=(NEAR-a[2])/(b[2]-a[2])
       Q.append((a[0]+t*(b[0]-a[0]),a[1]+t*(b[1]-a[1]),NEAR))
   if len(Q)<3:return
-  pts=[]
-  for p in Q:
-    sx=CX+F*p[0]/p[2];sy=CY-F*p[1]/p[2]
-    pts.append((int(max(-3000,min(3000,sx))),int(max(-3000,min(3000,sy)))))
-  poly(pts,c)
+  pts=[(CX+F*p[0]/p[2],CY-F*p[1]/p[2]) for p in Q]
+  #clip exactly to the screen edges (clamping huge coordinates bent the
+  #edges of big ground polygons and made the terrain look broken)
+  for ax,lim,keep in ((0,-2.0,1),(0,SW+2.0,-1),(1,-2.0,1),(1,SH+2.0,-1)):
+    R=[];n=len(pts)
+    if n<3:return
+    for i in range(n):
+      a=pts[i];b=pts[(i+1)%n]
+      ai=(a[ax]-lim)*keep>=0;bi=(b[ax]-lim)*keep>=0
+      if ai:R.append(a)
+      if ai!=bi:
+        t=(lim-a[ax])/(b[ax]-a[ax])
+        R.append((a[0]+t*(b[0]-a[0]),a[1]+t*(b[1]-a[1])))
+    pts=R
+  if len(pts)<3:return
+  poly([(int(p[0]),int(p[1])) for p in pts],c)
 def fog(c,z):
   return mix(c,HAZE,(z-40)/90.0)
 
