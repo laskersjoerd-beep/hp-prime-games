@@ -64,7 +64,7 @@ KEYBOARD
   Right  : marker = speed limit     Left : marker 0
   Enter  : doors          Del : emergency brake
   Menu   : route map      Space : wipers
-  7 / 9  : shorter / longer view distance (480 m / 760 m / 1.1 km)       Esc : pause / quit
+  7 / 9  : shorter / longer view distance (640 m / 1 km / 1.5 km)       Esc : pause / quit
 
 INSTALL
   Copy the RAILCAB.hpappdir folder to the calculator with HP
