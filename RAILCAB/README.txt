@@ -5,10 +5,9 @@ limits, stop at the STOP marker, open the doors, let everyone board,
 close the doors and keep to the timetable.
 
 THE DASHBOARD
-  Bottom-left panel : train class, unit number, headcode, route,
-                      next stop, timetable time and delay
-                      (green = on time or early, red = late),
-                      distance to the stop and the platform number
+  Bottom-left panel : next stop, DISTANCE TO GO, timetable time and
+                      delay (green = on time or early, red = late),
+                      platform number, unit number and headcode
   Signal box        : number of the next signal, its distance and
                       its aspect (red / yellow / green)
   Clock             : current time
@@ -34,13 +33,13 @@ HOW TO DRIVE
   5. When stopped at the platform, press DOOR to open the doors.
      Close them again when everyone has boarded.
 
-SCORING
+SCORING (no point penalties - you only earn points)
   Stop within 1.5 m of the marker : Perfect stop +150
   Within 5 m / 12 m               : +100 / +50
-  On time (up to 60 s early or 30 s late)  : +100
-  Overspeed: -10 every second. Far too fast trips the emergency brake (-100)
-  Passing a red signal (SPAD): -400   Missing a stop: -300
-  Hitting the buffers: -500. Your best score per route is saved.
+  On time (up to 60 s early or 30 s late) : +100
+  Mistakes (overspeed, red signal, missed stop, buffers) cost no points,
+  but they are counted on the results screen. Going far too fast still
+  triggers the emergency brake. Your best score per route is saved.
 
 ROUTES (all fictional)
   Saltmere Coast Line  - sunny seaside, beaches, a long estuary bridge
@@ -53,17 +52,19 @@ TRAINS
   Class 418 Kestrel  - 110 mph intercity train, heavy and long
   Class 156 Badger   - 60 mph 2-car regional train
 
-TOUCH CONTROLS
+TOUCH CONTROLS (icon buttons)
   Tap or drag on the speed dial to set the green marker.
-  SET v / SET ^  : marker -5 / +5 mph
-  DOOR : open/close doors     STOP : emergency brake
-  WIPE : wipers on/off        MAP  : route map
+  Down / up arrows   : marker -5 / +5 mph
+  Yellow doors       : open/close doors
+  Red circle         : emergency brake
+  Windscreen         : wipers on/off
+  Route line         : route map
 KEYBOARD
   Up / + : marker +5      Down / - : marker -5
   Right  : marker = speed limit     Left : marker 0
   Enter  : doors          Del : emergency brake
   Menu   : route map      Space : wipers
-  7 / 9  : shorter / longer view distance       Esc : pause / quit
+  7 / 9  : shorter / longer view distance (480 m / 760 m / 1.1 km)       Esc : pause / quit
 
 INSTALL
   Copy the RAILCAB.hpappdir folder to the calculator with HP
