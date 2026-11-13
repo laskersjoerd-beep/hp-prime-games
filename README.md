@@ -1,6 +1,6 @@
 # HP Prime Games
 
-Eight original games for the **HP Prime** graphing calculator, written in Python (the `hpprime` module). Each one is a calculator app that you open from the Apps screen. They all work with the touch screen and the keyboard.
+Nine original games for the **HP Prime** graphing calculator, written in Python (the `hpprime` module). Each one is a calculator app that you open from the Apps screen. They all work with the touch screen and the keyboard.
 
 | Game | What it is | Download |
 |------|-----------|----------|
@@ -12,6 +12,7 @@ Eight original games for the **HP Prime** graphing calculator, written in Python
 | **WOODLOT** | Lumber tycoon: chop, haul, saw, sell and build | [WOODLOT-HPPrime.zip](downloads/WOODLOT-HPPrime.zip) |
 | **MATHRUN** | School-maze math game: find 7 notebooks and escape Ms. Margin | [MATHRUN-HPPrime.zip](downloads/MATHRUN-HPPrime.zip) |
 | **RAILCAB** | Train driving: signals, speed limits, station stops and doors | [RAILCAB-HPPrime.zip](downloads/RAILCAB-HPPrime.zip) |
+| **STRIKER** | Tanks and planes: battle bot teams over capture point A | [STRIKER-HPPrime.zip](downloads/STRIKER-HPPrime.zip) |
 
 ## How to install
 
