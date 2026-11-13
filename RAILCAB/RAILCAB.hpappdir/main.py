@@ -592,7 +592,11 @@ def project(cam):
   CAMY[0]=camY
   dd,nearc,_=DDS[DET[0]]
   x=0.0;dx=-curv[base]*frac
-  j=base;m=0;k=0
+  #first boundary right in front of the cab, so the ground and track
+  #reach all the way down to the dashboard
+  z=2.5;s=F/z
+  NB[0]=base;BZ[0]=z;BW[0]=0.0;BE[0]=camY-CH;BS[0]=s;BX[0]=CX;BY[0]=HOR+CH*s
+  j=base;m=1;k=0
   mid=nearc*3
   while m<127:
     x+=dx;dx+=curv[j];j+=1
@@ -859,7 +863,7 @@ def render():
       L(xn-2.4*sn,yn,xn-2.4*sn,yn-1.3*sn,gc_);L(xn+6.3*sn,yn,xn+6.3*sn,yn-1.3*sn,gc_)
       if jn%4==0:FR(xn-2.6*sn,yn,8.9*sn,4*sn,mix(0x6A6660,hz,fg))
     # scenery
-    if not fl&TUN:
+    if k>0 and not fl&TUN:
       by=yn
       if sl[jn] and not fl&PLL:scen(sl[jn],-1,xn,by,sn,hs[jn],fg,hz,env)
       if sr[jn] and not fl&PLR:scen(sr[jn],1,xn+3.9*sn,by,sn,hs[jn]^0x5A,fg,hz,env)
@@ -872,7 +876,7 @@ def render():
       tc2=shade(tc,0.8)
       poly(((xn-2.8*sn,yn-4.8*sn),(xn-0.8*sn,yn-6.6*sn),(xn+4.7*sn,yn-6.6*sn),(xn+6.7*sn,yn-4.8*sn),(xf+6.7*sf,yf-4.8*sf),(xf+4.7*sf,yf-6.6*sf),(xf-0.8*sf,yf-6.6*sf),(xf-2.8*sf,yf-4.8*sf)),tc2)
       if jn%5==0:FR(xn-2.7*sn,yn-3.2*sn,0.3*sn,0.3*sn,0xFFE8A0)
-      if not flag[jn-1]&TUN:
+      if k>0 and not flag[jn-1]&TUN:
         L_=xn-2.8*sn;R_=xn+6.7*sn;Tt=yn-6.6*sn;yt=yn-28*sn
         hc=mix(0x4C6A3C,hz,fg);sc=mix(0x7A746A,hz,fg)
         FR(L_-60*sn,yt,60*sn,yn-yt,hc);FR(R_,yt,60*sn,yn-yt,hc);FR(L_,yt,R_-L_,Tt-yt,hc)
