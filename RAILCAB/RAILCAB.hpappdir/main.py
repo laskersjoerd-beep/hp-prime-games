@@ -52,6 +52,30 @@ def T(x,y,s,c):
   textout(G,int(x),int(y),s,c)
 def ctext(s,y,c):
   textout(G,(SW-len(s)*6)//2,y,s,c)
+# 7-segment digit decals (drawn with rectangles, scale with the sign)
+SEGS=("abcdef","bc","abged","abgcd","fgbc","afgcd","afgedc","abc","abcdefg","abcdfg")
+def digits(cx,cy,hgt,s,c):
+  #number s centred on (cx,cy), digit height hgt pixels
+  w=hgt*0.55;t=max(1,hgt*0.16);gap=w*0.35;n=len(s)
+  x0=cx-(n*w+(n-1)*gap)/2;y0=cy-hgt/2;hh=hgt/2
+  for ch in s:
+    for g in SEGS[ord(ch)-48]:
+      if g=='a':FR(x0,y0,w,t,c)
+      elif g=='b':FR(x0+w-t,y0,t,hh+t/2,c)
+      elif g=='c':FR(x0+w-t,y0+hh-t/2,t,hh+t/2,c)
+      elif g=='d':FR(x0,y0+hgt-t,w,t,c)
+      elif g=='e':FR(x0,y0+hh-t/2,t,hh+t/2,c)
+      elif g=='f':FR(x0,y0,t,hh+t/2,c)
+      else:FR(x0,y0+hh-t/2,w,t,c)
+    x0+=w+gap
+def speedSign(cx,cy,R,v,ring=0xD82020,face=0xFFFFFF):
+  #round speed-limit sign: red ring, white face, black number decal
+  n=8 if R<6 else 14
+  disc(cx,cy,R,ring,n)
+  if R<2.5:return
+  disc(cx,cy,R*0.74,face,n)
+  if R>=4:digits(cx,cy,R*0.78,str(v),0x101010)
+
 def mix(c,d,t):
   if t<=0:return c
   if t>1:t=1
@@ -641,7 +665,7 @@ def scen(t,side,bx,by,s,h,fg,hz,env):
         cx=x-w*s/2+((hq>>2)%4+0.5)*w*s/4.2;cy=by-hh*s+((hq*3)%rr+0.6)*4*s
         FR(cx,cy,cw*1.6,cw,lit[hq%3])
   elif t==ROCK:
-    X=side*(8+(h&15)*0.7);x=bx+X*s;r=2+(h>>5);hh=r*(1.4 if env==0 else 1)
+    r=1.5+(h>>5)*0.5;X=side*(4.5+r*1.7+(h&15)*0.5);x=bx+X*s;hh=r*(1.4 if env==0 else 1)
     poly(((x-r*1.5*s,by),(x-r*s,by-hh*s),(x,by-hh*1.5*s),(x+r*1.1*s,by-hh*0.9*s),(x+r*1.6*s,by)),mix(0x8C8478 if env==0 else 0x6E6A64,hz,fg))
   elif t==BOAT:
     X=side*(45+(h&63));x=bx+X*s;yy=by
@@ -656,7 +680,7 @@ def scen(t,side,bx,by,s,h,fg,hz,env):
     FR(x-1.2*s,by-16*s,2.4*s,16*s,mix(0xF4F4F4,hz,fg));FR(x-1.2*s,by-11*s,2.4*s,2.4*s,mix(0xD03030,hz,fg))
     FR(x-0.8*s,by-18*s,1.6*s,2*s,0xFFF0A0)
   elif t==BUSH:
-    X=side*(5+(h&15)*0.6);x=bx+X*s;r=1+(h>>6)*0.4
+    r=1+(h>>6)*0.4;X=side*(4+r*1.8+(h&15)*0.5);x=bx+X*s
     poly(((x-r*1.6*s,by),(x-r*s,by-r*1.2*s),(x+r*s,by-r*1.3*s),(x+r*1.7*s,by)),mix(0x4F8A3A,hz,fg))
   elif t==FACT:
     X=side*(20+(h&15));x=bx+X*s;w=18;hh=9
@@ -689,11 +713,9 @@ def drawObj(o,k,fg,hz,env):
     if s>7:
       FR(x-0.3*s,by-3.4*s,0.6*s,0.4*s,0xF0F0F0)
   elif kd_=='L':
-    x=bx-2.4*s
-    FR(x-0.06*s,by-2.2*s,max(1,0.12*s),2.2*s,0x505050)
-    w=max(2,1.0*s)
-    FR(x-w/2,by-3.1*s,w,max(2,0.9*s),mix(0xF8F8F8,hz,fg*0.5))
-    if w>=13:T(x-(6 if o[2]<100 else 9),by-3.0*s+(0.9*s-10)/2,str(o[2]),0x000000)
+    x=bx-2.6*s
+    FR(x-0.07*s,by-2.6*s,max(1,0.14*s),2.6*s,0x505050)
+    speedSign(x,by-3.35*s,max(1.5,0.8*s),o[2],mix(0xD82020,hz,fg*0.5),mix(0xFFFFFF,hz,fg*0.5))
   elif kd_=='B':
     side=o[3];x=bx+(-6.6 if side<0 else 9.6)*s;y=by-0.95*s
     w=4.6*s
@@ -818,8 +840,8 @@ def render():
     # scenery
     if not fl&TUN:
       by=yn
-      if sl[jn]:scen(sl[jn],-1,xn,by,sn,hs[jn],fg,hz,env)
-      if sr[jn]:scen(sr[jn],1,xn+3.9*sn,by,sn,hs[jn]^0x5A,fg,hz,env)
+      if sl[jn] and not fl&PLL:scen(sl[jn],-1,xn,by,sn,hs[jn],fg,hz,env)
+      if sr[jn] and not fl&PLR:scen(sr[jn],1,xn+3.9*sn,by,sn,hs[jn]^0x5A,fg,hz,env)
     # tunnel
     if fl&TUN:
       dk=0.15+0.85*(1-min(1.0,zn/160.0))
@@ -1012,9 +1034,7 @@ def hud(ctl):
   # limit disc
   lm=curLimit()
   over=mph>lm+3
-  disc(245,224,12,0xE02020 if not over or int(ST['t']*4)&1 else 0xFFFFFF)
-  disc(245,224,9,0xFFFFFF if not over else 0xFFE0E0)
-  s=str(lm);T(245-len(s)*3,219,s,0x000000)
+  speedSign(245,224,12,lm,0xE02020 if not over or int(ST['t']*4)&1 else 0xFFFFFF,0xFFFFFF if not over else 0xFFE0E0)
   # dial: green marker = set max speed, white needle = speed
   sc=TR[6]
   a=1.5708*min(sc,ST['tgt'])/sc;ca=cos(a);sa=sin(a)
