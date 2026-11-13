@@ -140,7 +140,7 @@ def build(ri):
   stops=[200.0]
   for g in gaps:stops.append(stops[-1]+g)
   endm=stops[-1]+24.0
-  n=int(endm/SEG)+96
+  n=int(endm/SEG)+150
   curv=BUF[0];elev=BUF[1];flag=BUF[2];sl=BUF[3];sr=BUF[4];lim=BUF[5];hs=BUF[6]
   for j in range(NMAX):
     curv[j]=0.0;elev[j]=0.0;flag[j]=0;sl[j]=0;sr[j]=0;lim[j]=0
@@ -338,7 +338,7 @@ def build(ri):
 #---------- game state ----------
 TI=[0];RI=[0]
 DET=[1]
-DDS=((36,18,0),(52,24,1),(70,28,1))
+DDS=((60,20,1),(95,24,1),(140,28,1))
 ST={}
 def newgame():
   T=TRAINS[TI[0]]
@@ -356,9 +356,11 @@ def newgame():
 def say(s,t=3.0):
   ST['msg']=s;ST['msgT']=t
 def award(p,s):
+  # no point penalties: mistakes only show a message and are counted
+  if p<0:
+    ST['pen']+=1;say(s,3.0);return
   ST['score']+=p
-  if p<0:ST['pen']+=1
-  say(s+('  +%d'%p if p>=0 else '  %d'%p),3.0)
+  say(s+'  +%d'%p,3.0)
 
 def sigRed(i):
   s=SG[i]
@@ -437,7 +439,7 @@ def update(dt):
   if mph>lm+3:
     ST['over']+=dt;ST['ovt']+=dt
     if ST['ovt']>=1.0:
-      ST['ovt']-=1.0;ST['score']-=10
+      ST['ovt']-=1.0
     if mph>lm+12 and not ST['emerg']:
       ST['emerg']=1;award(-100,'OVERSPEED TRIP')
   else:
@@ -543,7 +545,7 @@ def doorButton():
     say('Doors closing...',2)
 
 #---------- renderer ----------
-NB=[0]*80;BZ=[0.0]*80;BX=[0.0]*80;BY=[0.0]*80;BS=[0.0]*80;BW=[0.0]*80;BE=[0.0]*80
+NB=[0]*128;BZ=[0.0]*128;BX=[0.0]*128;BY=[0.0]*128;BS=[0.0]*128;BW=[0.0]*128;BE=[0.0]*128
 CAMY=[0.0];NBM=[0]
 
 def project(cam):
@@ -556,11 +558,14 @@ def project(cam):
   dd,nearc,_=DDS[DET[0]]
   x=0.0;dx=-curv[base]*frac
   j=base;m=0;k=0
-  while m<79:
+  mid=nearc*3
+  while m<127:
     x+=dx;dx+=curv[j];j+=1
     if j>=n-1:break
     k+=1
-    if k>nearc and (k&1):continue
+    if k>mid:
+      if k&3:continue
+    elif k>nearc and (k&1):continue
     if k>dd:break
     z=j*SEG-cam
     if z<1.0:z=1.0
@@ -600,7 +605,7 @@ def sky():
     for x in range(0,330,10):p.append((x,HOR-fh[((x+o)//10)%64]))
   p.append((SW,HOR+2))
   poly(p,E[6])
-  FR(0,HOR+1,SW,VH-HOR,mix(E[2],E[1],0.6))
+  FR(0,HOR+1,SW,VH-HOR,mix(E[2],E[1],0.85))
 
 def scen(t,side,bx,by,s,h,fg,hz,env):
   if t==PINE:
@@ -780,7 +785,7 @@ def render():
           poly(((xn+X*sn,yn),(xn+(X+0.08)*sn,yn),(xf+(X+0.08)*sf,yf),(xf+X*sf,yf)),rc)
       else:
         L(xn-0.72*sn,yn,xf-0.72*sf,yf,rc);L(xn+0.72*sn,yn,xf+0.72*sf,yf,rc)
-      if zn<300:
+      if zn<450:
         L(xn+3.18*sn,yn,xf+3.18*sf,yf,rc);L(xn+4.62*sn,yn,xf+4.62*sf,yf,rc)
     # platforms
     if fl&PLL:
@@ -833,11 +838,11 @@ def render():
         FR(L_-0.8*sn,Tt,0.8*sn,yn-Tt,sc);FR(R_,Tt,0.8*sn,yn-Tt,sc)
     # catenary
     if wires:
-      if zn<320:
+      if zn<440:
         wcl=mix(0x202428,hz,fg)
         L(xn,yn-5.6*sn,xf,yf-5.6*sf,wcl);L(xn+3.9*sn,yn-5.6*sn,xf+3.9*sf,yf-5.6*sf,wcl)
         if zn<120:L(xn,yn-6.6*sn,xf,yf-6.6*sf,wcl)
-      if jn%6<(jf-jn) and zn<420:
+      if jn%6<(jf-jn) and zn<620:
         mc=mix(0x4A4E54,hz,fg);w=max(1,0.28*sn)
         if fl&TUN:
           FR(xn-0.8*sn,yn-6.6*sn,5.5*sn,max(1,0.2*sn),mc)
@@ -878,6 +883,30 @@ def dashPrep():
       t=str(v);labs.append((int(min(DCX-(DR-19)*ca-len(t)*3,316-len(t)*6)),int(DCY-(DR-19)*sa-5),t))
   DASH.extend([p1,p2,p3,ticks_,labs])
 
+def icons():
+  # DOOR: two door leaves sliding apart
+  x,y=168,163
+  FR(x+8,y+5,6,14,0xFFE070);FR(x+15,y+5,6,14,0xFFE070)
+  FR(x+9,y+7,4,4,0x5A4A18);FR(x+16,y+7,4,4,0x5A4A18)
+  fillpoly(G,[(x+2,y+12),(x+6,y+9),(x+6,y+15)],0xFFE070)
+  fillpoly(G,[(x+27,y+12),(x+23,y+9),(x+23,y+15)],0xFFE070)
+  # WIPER: windscreen with a wiper arm
+  x,y=199,163
+  fillpoly(G,[(x+4,y+19),(x+24,y+19),(x+21,y+5),(x+7,y+5)],0x7FB0D8)
+  line(G,x+14,y+19,x+8,y+7,0x101214);line(G,x+15,y+19,x+9,y+7,0x101214)
+  FR(x+13,y+18,3,3,0x101214)
+  # EMERGENCY BRAKE: red disc with a white bar
+  x,y=168,188
+  disc(x+14,y+11,8,0xFF3030,8);FR(x+9,y+10,11,3,0xFFFFFF)
+  # MAP: route line with stations and the train
+  x,y=199,188
+  FR(x+3,y+11,22,2,0xC0C8D0)
+  for q in (4,13,22):FR(x+q,y+8,2,8,0xFFFFFF)
+  fillpoly(G,[(x+9,y+14),(x+6,y+19),(x+12,y+19)],0x30F070)
+  # max-speed marker down / up
+  fillpoly(G,[(174,221),(191,221),(182,232)],0xA0FFA0)
+  fillpoly(G,[(205,232),(222,232),(213,221)],0xA0FFA0)
+
 def dashDraw():
   dc=TRAINS[TI[0]][8]
   fillrect(G,0,160,SW,80,dc,dc)
@@ -890,11 +919,7 @@ def dashDraw():
     if key=='door':c=0x5A4A18
     if key=='stop':c=0x5A1A1A
     FR(x,y,w,h,c);FR(x,y,w,1,0x60666E)
-  T(172,170,"DOOR",0xFFE070);T(203,170,"WIPE",0xFFFFFF)
-  T(172,195,"STOP",0xFF8080);T(206,195,"MAP",0xFFFFFF)
-  fillpoly(G,[(176,226),(189,226),(182,233)],0xFFFFFF)
-  fillpoly(G,[(206,233),(219,233),(212,226)],0xFFFFFF)
-  T(175,214,"SET",0xA0FFA0);T(206,214,"SET",0xA0FFA0)
+  icons()
   FR(229,163,30,75,0x15181D);FR(232,166,6,68,0x050607)
   p1,p2,p3,tk,lb=DASH
   fillpoly(G,p1,0x50565E);fillpoly(G,p2,0x0C0E11)
@@ -932,14 +957,15 @@ def hud(ctl):
   now=RT['clk']+ST['t']
   # points
   FR(2,11,82,14,0x15181D);T(6,13,'%d Points'%ST['score'],0xFFFFFF)
-  # info panel
-  T(6,165,TR[0],0xA8B0B8)
-  T(6,177,ST['unit']+'  '+RT['hc']+'  R0%d'%(RI[0]+1),0xE0E0E0)
+  # info panel: next stop, distance to go, timetable, platform
   ns=ST['ns']
   if ns<len(STN):
     st=STN[ns]
-    T(6,190,'Terminus' if ns==len(STN)-1 else 'Next stop',0xFFFFFF)
-    T(6,202,st[0],0xFFD030)
+    T(6,165,'Terminus' if ns==len(STN)-1 else 'Next stop',0xA8B0B8)
+    T(6,177,st[0],0xFFD030)
+    ds=dist(max(0.0,st[4]-ST['pos']))
+    T(6,190,ds,0xFFFFFF);T(7,190,ds,0xFFFFFF)
+    T(8+len(ds)*7,190,'to go',0xA8B0B8)
     if ST['doors']==1 and atPlatform():
       late=ST['arr']
     else:
@@ -948,10 +974,10 @@ def hud(ctl):
       est=now+(rem/st[7]*RT['fac']+5*rem/gap if ns>0 else 0)
       late=est-st[5]
       if ns==0:late=0
-    T(6,214,hhmm(st[5]),0xFFFFFF)
-    T(42,214,('(+' if late>0 else '(-')+mmss(late)+')',0xFF6060 if late>30 else 0x60E060)
-    T(6,226,'Platform %d'%st[1],0xFFFFFF)
-    T(70,226,dist(max(0.0,st[4]-ST['pos'])),0xFFFFFF)
+    T(6,202,hhmm(st[5]),0xFFFFFF)
+    T(42,202,('(+' if late>0 else '(-')+mmss(late)+')',0xFF6060 if late>30 else 0x60E060)
+    T(6,214,'Platform %d'%st[1],0xFFFFFF)
+  T(6,226,ST['unit']+' '+RT['hc'],0x8890A0)
   # signal box
   i=ST['nsig']
   if i<len(SG):
@@ -1109,7 +1135,7 @@ def results():
   y=74
   for a,b in (('Stations served','%d/%d'%(ST['stops'],len(STN)-1)),('Perfect stops',str(ST['perfect'])),
               ('On time',str(ST['ontime'])),('Signals passed at danger',str(ST['spad'])),
-              ('Penalties',str(ST['pen'])),('Overspeed time','%d s'%int(ST['over']))):
+              ('Mistakes',str(ST['pen'])),('Overspeed time','%d s'%int(ST['over']))):
     T(48,y,a,0xFFFFFF);T(232,y,b,0xFFFFFF);y+=14
   ctext('%d Points'%sc,162,0x60F090)
   if nb:ctext("NEW BEST!",176,0xFFD030)
